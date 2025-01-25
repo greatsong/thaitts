@@ -43,14 +43,14 @@ def translate_and_transliterate(text, source_lang):
         prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
 
     response = openai.ChatCompletion.create(
-        model="gpt-4",  # 기본 모델: 4o
+        model="gpt-4",  # 기본 모델: gpt-4
         messages=[
             {"role": "system", "content": "You are a translation assistant."},
             {"role": "user", "content": prompt}
         ],
         temperature=0.3,
     )
-    output = response["choices"][0]["message"]["content"]
+    output = response.choices[0].message["content"]
     lines = output.split("\n")
     translation = lines[0].strip()
     pronunciation = lines[1].strip() if len(lines) > 1 else "Pronunciation not available"
