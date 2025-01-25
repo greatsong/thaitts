@@ -44,7 +44,7 @@ def translate_and_transliterate(text):
     return thai_translation, thai_pronunciation
 
 # TTS 생성 함수
-def generate_tts(text, voice="alloy"):
+def generate_tts(text, voice="shimmer"):
     output_mp3_path = Path("output.mp3")
     response = openai.Audio.create(
         model="tts-1",
