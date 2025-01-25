@@ -2,8 +2,6 @@ import streamlit as st
 from pathlib import Path
 from openai import OpenAI
 from googletrans import Translator
-from io import BytesIO
-from IPython.display import Audio
 
 # OpenAI API 클라이언트 초기화
 client = OpenAI(api_key=st.secrets["openai_api_key"])  # OpenAI API 키 입력
@@ -62,9 +60,9 @@ if st.button("MP3 생성"):
         )
         response.stream_to_file(output_mp3_path)
 
-        # MP3 파일 재생 및 다운로드 제공
+        # MP3 파일 제공
         with open(output_mp3_path, "rb") as mp3_file:
-            st.audio(mp3_file.read(), format="audio/mp3")
+            st.audio(mp3_file.read(), format="audio/mp3")  # 오디오 재생
             st.download_button(
                 label="MP3 파일 다운로드",
                 data=mp3_file,
@@ -73,4 +71,5 @@ if st.button("MP3 생성"):
             )
 
         st.success("MP3 파일 생성 완료!")
+
 
