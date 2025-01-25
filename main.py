@@ -1,9 +1,9 @@
 import streamlit as st
 from pathlib import Path
-from openai import OpenAI
+import openai
 
-# OpenAI API 클라이언트 초기화
-client = OpenAI(api_key=st.secrets["openai_api_key"])  # OpenAI API 키 사용
+# OpenAI API 키 설정
+openai.api_key = st.secrets["openai_api_key"]
 
 # Streamlit UI 구성
 st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
@@ -16,7 +16,7 @@ user_text = st.text_area("📝 한글 텍스트를 입력하세요:")
 
 # ChatGPT를 이용한 번역 및 발음 생성 함수
 def translate_and_transliterate(text):
-    response = client.chat_completions.create(
+    response = openai.ChatCompletion.create(
         model="gpt-4",  # 또는 "gpt-3.5-turbo"
         messages=[
             {"role": "system", "content": "You are a translation assistant."},
@@ -24,7 +24,7 @@ def translate_and_transliterate(text):
         ],
         temperature=0.3,
     )
-    output = response.choices[0].message["content"]
+    output = response["choices"][0]["message"]["content"]
     lines = output.split("\n")
     thai_translation = lines[0].strip()
     thai_pronunciation = lines[1].strip() if len(lines) > 1 else "Pronunciation not available"
@@ -33,12 +33,13 @@ def translate_and_transliterate(text):
 # TTS 생성 함수
 def generate_tts(text, voice="alloy"):
     output_mp3_path = Path("output.mp3")
-    response = client.audio.speech.create(
+    response = openai.Audio.create(
         model="tts-1",
         voice=voice,
         input=text,
     )
-    response.stream_to_file(output_mp3_path)
+    with open(output_mp3_path, "wb") as f:
+        f.write(response.content)
     return output_mp3_path
 
 # 변환 및 MP3 생성 처리
