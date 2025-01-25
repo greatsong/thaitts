@@ -18,12 +18,12 @@ def translate_and_transliterate(text, source_lang):
         
     try:
         if source_lang == "한글":
-            prompt = f"Instructions:\n1. Translate the Korean text into Thai without any labels\n2. Write how to pronounce the Thai translation in Korean characters only\n\nText to translate:\n{text}"
+            prompt = f"1. Translate this Korean text to Thai:\n{text}\n2. Write ONLY how to pronounce the Thai translation using Korean characters (한글로 태국어 발음 표기)"
         else:
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
-            model="gpt-4-0125-preview",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a translation assistant."},
                 {"role": "user", "content": prompt}
