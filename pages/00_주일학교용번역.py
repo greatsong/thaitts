@@ -117,7 +117,13 @@ def main():
     with col2:
         target_audience = st.radio("대상:", ["유치원생", "초등학생", "중고등학생"])
 
-    user_text = st.text_area("📝 텍스트를 입력하세요:", height=150)
+    input_method = st.radio("입력 방식:", ["텍스트 창 입력", "텍스트 파일 업로드"])
+
+    if input_method == "텍스트 창 입력":
+        user_text = st.text_area("📝 텍스트를 입력하세요:", height=150)
+    else:
+        uploaded_file = st.file_uploader("📂 텍스트 파일을 업로드하세요:", type=["txt"])
+        user_text = uploaded_file.read().decode("utf-8") if uploaded_file else ""
 
     if st.button("번역 및 MP3 생성", type="primary"):
         if not user_text.strip():
