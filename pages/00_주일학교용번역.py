@@ -10,13 +10,12 @@ except Exception as e:
     st.error("OpenAI API 키 설정에 문제가 있습니다.")
     st.stop()
 
-@st.cache_data()
 @st.cache_data(ttl=3600)
 def translate_and_transliterate(text, source_lang):
-    if not text.strip():
-        return "", ""
-        
     try:
+        if not text.strip():
+            return "", ""
+            
         if source_lang == "한글":
             prompt = f"""Task: Translate Korean to Thai for Christian missionary work
 
@@ -92,29 +91,34 @@ Text to translate: {text}"""
         
         output = response.choices[0].message.content.strip()
         lines = [line.strip() for line in output.split("\n") if line.strip()]
+        
         if len(lines) != 2:
             raise ValueError("번역 결과가 예상 형식과 다릅니다.")
         
         return lines[0], lines[1]
+        
+    except Exception as e:
+        st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
+        return "", ""
 
-def generate_tts_per_sentence(text, target_audience):
+def generate_tts_per_sentence(text, voice="shimmer"):
     if not text.strip():
         return []
         
     sentences = [s.strip() for s in text.split('\n') if s.strip()]
     audio_paths = []
     
-    with st.progress(0) as progress_bar:
-        for i, sentence in enumerate(sentences):
-            try:
-                file_name = f"sentence_{i+1}_{target_audience}.mp3"
+    try:
+        with st.progress(0) as progress_bar:
+            for i, sentence in enumerate(sentences):
+                file_name = f"sentence_{i+1}.mp3"
                 output_dir = "temp_audio"
                 os.makedirs(output_dir, exist_ok=True)
                 output_path = Path(output_dir) / file_name
                 
                 response = client.audio.speech.create(
                     model="tts-1",
-                    voice="shimmer",
+                    voice=voice,
                     input=sentence
                 )
                 
@@ -125,113 +129,76 @@ def generate_tts_per_sentence(text, target_audience):
                 audio_paths.append(output_path)
                 progress_bar.progress((i + 1) / len(sentences))
                 
-            except Exception as e:
-                st.error(f"음성 생성 중 오류: {str(e)}")
+        return audio_paths
                 
-    return audio_paths
+    except Exception as e:
+        st.error(f"음성 생성 중 오류 발생: {str(e)}")
+        return []
 
 def main():
-    st.set_page_config(page_title="태국 선교 번역 도구", layout="wide")
-    
-    st.markdown("""
-    <h1 style='text-align: center; color: #1E88E5;'>🌟 태국 선교를 위한 번역 도구 🌟</h1>
-    <h3 style='text-align: center; color: #424242;'>맞춤형 번역과 음성 생성 서비스</h3>
-    """, unsafe_allow_html=True)
+    st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
+    st.subheader("🇹🇭 한글 또는 태국어를 입력하거나 파일로 업로드하세요!")
+    st.write("🎧 **텍스트를 번역하고 발음을 확인하며 음성을 생성합니다.** 🎧")
 
-    with st.container():
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### 📝 입력 설정")
-            input_language = st.radio(
-                "입력 언어를 선택하세요:",
-                ["한글", "태국어"],
-                format_func=lambda x: {"한글": "🇰🇷 한글", "태국어": "🇹🇭 태국어"}[x]
-            )
-            
-        with col2:
-            st.markdown("### 👥 대상 설정")
-            target_audience = st.radio(
-                "번역 대상을 선택하세요:",
-                ["유치원생", "초등학생", "중고등학생"],
-                format_func=lambda x: {
-                    "유치원생": "🎈 유치원생 (3-6세)",
-                    "초등학생": "✏️ 초등학생 (7-12세)",
-                    "중고등학생": "📚 중고등학생 (13-18세)"
-                }[x]
-            )
+    col1, col2 = st.columns(2)
+    with col1:
+        input_language = st.radio("입력 언어:", ["한글", "태국어"])
+    with col2:
+        input_method = st.radio("입력 방식:", ["텍스트 창 입력", "텍스트 파일 업로드"])
 
-    st.markdown("---")
+    if input_method == "텍스트 창 입력":
+        user_text = st.text_area("📝 텍스트를 입력하세요:", height=150)
+    else:
+        uploaded_file = st.file_uploader("📂 텍스트 파일을 업로드하세요:", type=["txt"])
+        user_text = uploaded_file.read().decode("utf-8") if uploaded_file else ""
 
-    tab1, tab2 = st.tabs(["📝 텍스트 입력", "📂 파일 업로드"])
-    
-    with tab1:
-        user_text = st.text_area(
-            "텍스트를 입력하세요:",
-            height=150,
-            placeholder="여기에 번역할 텍스트를 입력하세요..."
-        )
-        
-    with tab2:
-        uploaded_file = st.file_uploader(
-            "텍스트 파일을 업로드하세요:",
-            type=["txt"],
-            help="UTF-8 인코딩된 텍스트 파일만 지원합니다."
-        )
-        if uploaded_file:
-            user_text = uploaded_file.read().decode("utf-8")
-
-    if st.button("🚀 번역 시작", type="primary", use_container_width=True):
+    if st.button("번역 및 MP3 생성", type="primary"):
         if not user_text.strip():
             st.error("❌ 텍스트를 입력해주세요!")
             return
 
         with st.spinner("🔄 번역 중..."):
-            translation, pronunciation = translate_and_transliterate(
-                user_text, input_language, target_audience
-            )
+            translation, pronunciation = translate_and_transliterate(user_text, input_language)
             
             if translation and pronunciation:
-                st.markdown("---")
-                st.markdown("### 📊 번역 결과")
+                st.markdown("### 📝 번역 결과")
                 
                 col1, col2, col3 = st.columns(3)
-                
                 with col1:
-                    st.markdown("#### 원문")
-                    st.info(user_text)
-                    
+                    st.info(f"**원문:**\n{user_text}")
                 with col2:
-                    st.markdown("#### 번역")
-                    st.success(translation)
-                    
+                    st.success(f"**번역:**\n{translation}")
                 with col3:
-                    st.markdown("#### 발음")
-                    st.info(pronunciation)
-
-                st.markdown("---")
-                st.markdown("### 🎧 음성 생성")
+                    st.info(f"**발음:**\n{pronunciation}")
                 
+                st.markdown("### 🔊 음성")
                 tts_text = user_text if input_language == "태국어" else translation
-                audio_paths = generate_tts_per_sentence(tts_text, target_audience)
-
-                if audio_paths:
-                    for i, path in enumerate(audio_paths, 1):
-                        if path.exists():
-                            with open(path, "rb") as audio_file:
-                                audio_data = audio_file.read()
-                                col1, col2 = st.columns([3, 1])
-                                with col1:
-                                    st.audio(audio_data, format="audio/mpeg")
-                                with col2:
-                                    st.download_button(
-                                        f"💾 문장 {i} 다운로드",
-                                        data=audio_data,
-                                        file_name=f"sentence_{i}_{target_audience}.mp3",
-                                        mime="audio/mpeg",
-                                        use_container_width=True
-                                    )
+                
+                with st.spinner("음성 파일 생성 중..."):
+                    audio_paths = generate_tts_per_sentence(tts_text)
+                    
+                    if audio_paths:
+                        for i, path in enumerate(audio_paths, 1):
+                            if path.exists():
+                                with open(path, "rb") as audio_file:
+                                    audio_data = audio_file.read()
+                                    col1, col2 = st.columns([3, 1])
+                                    with col1:
+                                        st.audio(audio_data, format="audio/mpeg")
+                                    with col2:
+                                        st.download_button(
+                                            f"💾 문장 {i} 다운로드",
+                                            data=audio_data,
+                                            file_name=f"sentence_{i}.mp3",
+                                            mime="audio/mpeg"
+                                        )
+                                        
+                                try:
+                                    os.remove(path)
+                                except:
+                                    pass
                                     
-                    st.success("✅ 번역 및 음성 생성이 완료되었습니다!")
+                        st.success("✅ 번역 및 음성 생성 완료!")
 
 if __name__ == "__main__":
     main()
