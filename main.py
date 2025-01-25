@@ -67,14 +67,17 @@ def generate_tts(text, voice="shimmer"):
             input=clean_text
         )
         
+        # Stream 방식으로 처리
         with open(output_mp3_path, "wb") as f:
-            f.write(response.audio_content)
+            for chunk in response.iter_bytes():
+                f.write(chunk)
         
         return output_mp3_path
         
     except Exception as e:
         st.error(f"음성 생성 중 오류가 발생했습니다: {str(e)}")
         return None
+
 
 def main():
     st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
