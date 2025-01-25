@@ -17,82 +17,49 @@ def translate_and_transliterate(text, source_lang):
             return "", ""
             
         if source_lang == "한글":
-            prompt = f"""Task: Translate Korean to Thai for Christian missionary work
+            prompt = f"""Task: Translate Korean to Thai
 
-Input format: Korean text
-Required output format:
-Line 1: Thai translation using standard Thai script
-Line 2: Korean phonetic guide using common Korean syllables
+Rules:
+- Return EXACTLY 2 lines
+- Line 1: Thai translation
+- Line 2: Korean pronunciation of Thai
 
-Translation rules:
-- Maintain Christian theological terms accurately
-- Keep sentence structures simple but natural
-- Preserve honorific expressions appropriately
-
-Pronunciation guide rules:
-- Use Korean syllables that best match Thai sounds
-- Write each syllable separated by spaces
-- Follow standard Thai pronunciation patterns
-
-Example 1:
-Input: 하나님은 사랑이십니다
-Output:
+Example Input: 하나님은 사랑이십니다
+Example Output:
 พระเจ้าคือความรัก
 프라짜오 쿠 크왐락
 
-Example 2:
-Input: 예수님을 믿으세요
-Output:
-เชื่อในพระเยซู
-츠아 나이 프라예수
-
-Text to translate: {text}"""
+Input: {text}"""
 
         else:  # 태국어
-            prompt = f"""Task: Translate Thai to Korean for Christian missionary work
+            prompt = f"""Task: Translate Thai to Korean
 
-Input format: Thai text
-Required output format:
-Line 1: Korean translation using proper Korean grammar
-Line 2: Thai pronunciation guide in Korean syllables
+Rules:
+- Return EXACTLY 2 lines
+- Line 1: Korean translation
+- Line 2: Thai pronunciation in Korean
 
-Translation rules:
-- Use natural Korean expressions
-- Maintain appropriate honorific levels
-- Preserve Christian theological terminology
-
-Pronunciation guide rules:
-- Break down Thai words into Korean syllables
-- Separate each syllable with spaces
-- Match Thai tones as closely as possible with Korean sounds
-
-Example 1:
-Input: พระเจ้าทรงรักเรา
-Output:
+Example Input: พระเจ้าทรงรักเรา
+Example Output:
 하나님께서 우리를 사랑하십니다
-프라짜오 송 락 라우
+프라짜오 송락 라우
 
-Example 2:
-Input: พระเยซูเป็นพระผู้ช่วยให้รอด
-Output:
-예수님은 구세주이십니다
-프라예수 펀 프라푸추아이 하이 롯
-
-Text to translate: {text}"""
+Input: {text}"""
 
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a Christian missionary translation assistant specializing in Thai-Korean translations."},
+                {"role": "system", "content": "You are a Thai-Korean translation assistant."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.3
+            temperature=0.1
         )
         
         output = response.choices[0].message.content.strip()
-        lines = [line.strip() for line in output.split("\n") if line.strip()]
+        lines = [line.strip() for line in output.split('\n') if line.strip()]
         
         if len(lines) != 2:
+            st.error(f"API 응답: {output}")
             raise ValueError("번역 결과가 예상 형식과 다릅니다.")
         
         return lines[0], lines[1]
