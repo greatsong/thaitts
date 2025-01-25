@@ -17,14 +17,12 @@ def translate_and_transliterate(text, source_lang):
         return "", ""
         
     try:
-        if source_lang == "한글":
-            prompt = f"""Your task:
+        # 프롬프트 설정
+        prompt = f"""Your task:
 1. Translate the following text into Thai.
 2. Then, provide the Korean pronunciation guide for the translated Thai text (how to read the Thai words in Korean).
 
 Text to translate: {text}"""
-        else:
-            prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
             model="gpt-4o",
@@ -37,7 +35,7 @@ Text to translate: {text}"""
         
         output = response.choices[0].message.content.strip()
         
-        # 출력 형식을 파싱
+        # 출력 형식 파싱
         lines = [line.strip() for line in output.split("\n") if line.strip()]
         translation = lines[0] if len(lines) > 0 else "번역 결과를 생성할 수 없습니다."
         pronunciation = lines[1] if len(lines) > 1 else "발음을 생성할 수 없습니다."
@@ -106,7 +104,7 @@ def main():
                 st.info(f"**발음:**\n{pronunciation}")
                 
                 with st.spinner("🎧 MP3 생성 중..."):
-                    mp3_path = generate_tts(pronunciation)  # 발음을 기반으로 음성 생성
+                    mp3_path = generate_tts(translation)  # 태국어 텍스트를 기반으로 음성 생성
                     
                     if mp3_path and mp3_path.exists():
                         with open(mp3_path, "rb") as mp3_file:
