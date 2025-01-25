@@ -2,7 +2,6 @@ import streamlit as st
 from pathlib import Path
 from openai import OpenAI
 import os
-import subprocess
 
 # OpenAI client initialization with error handling
 try:
@@ -11,21 +10,6 @@ except Exception as e:
     st.error("OpenAI API 키 설정에 문제가 있습니다.")
     st.stop()
 
-# MP3 파일 변환 함수
-def convert_to_standard_mp3(input_path, output_path):
-    try:
-        command = [
-            "ffmpeg",
-            "-i", input_path,
-            "-ar", "44100",  # 표준 샘플링 레이트
-            "-ac", "2",      # 스테레오
-            "-b:a", "192k",  # 비트레이트
-            output_path
-        ]
-        subprocess.run(command, check=True)
-    except Exception as e:
-        st.error(f"MP3 변환 중 오류가 발생했습니다: {str(e)}")
-
 # 캐시 데코레이터 추가
 @st.cache_data(ttl=3600)
 def translate_and_transliterate(text, source_lang):
@@ -33,6 +17,7 @@ def translate_and_transliterate(text, source_lang):
         return "", ""
         
     try:
+        # 완벽한 프롬프트
         prompt = f"""Your task:
 1. Translate the given text into Thai.
 2. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
@@ -72,24 +57,21 @@ def generate_tts(text, voice="shimmer"):
     try:
         output_dir = "temp_audio"
         os.makedirs(output_dir, exist_ok=True)
-        raw_mp3_path = Path(output_dir) / "raw_output.mp3"
-        final_mp3_path = Path(output_dir) / "output.mp3"
+        output_mp3_path = Path(output_dir) / "output.mp3"
         
-        # 스트림 방식으로 처리
+        # OpenAI TTS 호출
         response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
             input=text
         )
         
-        with open(raw_mp3_path, "wb") as f:
+        # MP3 파일 저장
+        with open(output_mp3_path, "wb") as f:
             for chunk in response.iter_bytes():
                 f.write(chunk)
         
-        # MP3 변환
-        convert_to_standard_mp3(raw_mp3_path, final_mp3_path)
-        
-        return final_mp3_path
+        return output_mp3_path
         
     except Exception as e:
         st.error(f"음성 생성 중 오류가 발생했습니다: {str(e)}")
@@ -143,6 +125,7 @@ def main():
                                     mime="audio/mpeg"
                                 )
                                 
+                        # 임시 파일 정리
                         try:
                             os.remove(mp3_path)
                         except:
