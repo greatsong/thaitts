@@ -27,7 +27,7 @@ Text to translate: {text}"""
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
-            model="4o",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a translation assistant."},
                 {"role": "user", "content": prompt}
