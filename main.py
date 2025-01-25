@@ -10,14 +10,12 @@ except Exception as e:
     st.error("OpenAI API 키 설정에 문제가 있습니다.")
     st.stop()
 
-# 캐시 데코레이터 추가
 @st.cache_data(ttl=3600)
 def translate_and_transliterate(text, source_lang):
     if not text.strip():
         return "", ""
         
     try:
-        # 프롬프트 설정
         if source_lang == "한글":
             prompt = f"""Your task:
 1. Translate the given text into Thai.
@@ -30,7 +28,7 @@ Rules:
 - Do not add any labels, numbers, or additional explanations.
 
 Text to translate: {text}"""
-        else:  # 태국어 입력 시
+        else:  # 태국어 입력
             prompt = f"""Your task:
 1. Translate the given Thai text into Korean.
 2. On the next line, write the Korean pronunciation guide for the Thai text (how to read the Thai words in Korean).
@@ -43,7 +41,6 @@ Rules:
 
 Text to translate: {text}"""
         
-        # OpenAI API 호출
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -53,21 +50,16 @@ Text to translate: {text}"""
             temperature=0.3
         )
         
-        # 응답 처리
         output = response.choices[0].message.content.strip()
         lines = [line.strip() for line in output.split("\n") if line.strip()]
         if len(lines) != 2:
             raise ValueError("Unexpected output format from OpenAI API")
         
-        translation = lines[0]  # 첫 번째 줄: 번역 결과
-        pronunciation = lines[1]  # 두 번째 줄: 발음
-        
-        return translation, pronunciation
+        return lines[0], lines[1]
         
     except Exception as e:
         st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
         return "", ""
-
 
 def generate_tts(text, voice="shimmer"):
     if not text.strip():
@@ -78,14 +70,12 @@ def generate_tts(text, voice="shimmer"):
         os.makedirs(output_dir, exist_ok=True)
         output_mp3_path = Path(output_dir) / "output.mp3"
         
-        # OpenAI TTS 호출
         response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
             input=text
         )
         
-        # MP3 파일 저장
         with open(output_mp3_path, "wb") as f:
             for chunk in response.iter_bytes():
                 f.write(chunk)
@@ -127,8 +117,11 @@ def main():
                 st.success(f"**번역 결과:**\n{translation}")
                 st.info(f"**발음:**\n{pronunciation}")
                 
+                # 태국어 입력 시 태국어로 음성 생성, 한글 입력 시 번역된 태국어로 음성 생성
+                tts_text = user_text if input_language == "태국어" else translation
+                
                 with st.spinner("🎧 MP3 생성 중..."):
-                    mp3_path = generate_tts(translation)
+                    mp3_path = generate_tts(tts_text)
                     
                     if mp3_path and mp3_path.exists():
                         with open(mp3_path, "rb") as mp3_file:
