@@ -11,95 +11,91 @@ except Exception as e:
     st.stop()
 
 @st.cache_data()
-def translate_and_transliterate(text, source_lang, target_audience):
+@st.cache_data(ttl=3600)
+def translate_and_transliterate(text, source_lang):
     if not text.strip():
         return "", ""
         
     try:
-        sentences = text.split("\n")
-        translations = []
-        pronunciations = []
+        if source_lang == "한글":
+            prompt = f"""Task: Translate Korean to Thai for Christian missionary work
+
+Input format: Korean text
+Required output format:
+Line 1: Thai translation using standard Thai script
+Line 2: Korean phonetic guide using common Korean syllables
+
+Translation rules:
+- Maintain Christian theological terms accurately
+- Keep sentence structures simple but natural
+- Preserve honorific expressions appropriately
+
+Pronunciation guide rules:
+- Use Korean syllables that best match Thai sounds
+- Write each syllable separated by spaces
+- Follow standard Thai pronunciation patterns
+
+Example 1:
+Input: 하나님은 사랑이십니다
+Output:
+พระเจ้าคือความรัก
+프라짜오 쿠 크왐락
+
+Example 2:
+Input: 예수님을 믿으세요
+Output:
+เชื่อในพระเยซู
+츠아 나이 프라예수
+
+Text to translate: {text}"""
+
+        else:  # 태국어
+            prompt = f"""Task: Translate Thai to Korean for Christian missionary work
+
+Input format: Thai text
+Required output format:
+Line 1: Korean translation using proper Korean grammar
+Line 2: Thai pronunciation guide in Korean syllables
+
+Translation rules:
+- Use natural Korean expressions
+- Maintain appropriate honorific levels
+- Preserve Christian theological terminology
+
+Pronunciation guide rules:
+- Break down Thai words into Korean syllables
+- Separate each syllable with spaces
+- Match Thai tones as closely as possible with Korean sounds
+
+Example 1:
+Input: พระเจ้าทรงรักเรา
+Output:
+하나님께서 우리를 사랑하십니다
+프라짜오 송 락 라우
+
+Example 2:
+Input: พระเยซูเป็นพระผู้ช่วยให้รอด
+Output:
+예수님은 구세주이십니다
+프라예수 펀 프라푸추아이 하이 롯
+
+Text to translate: {text}"""
+
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a Christian missionary translation assistant specializing in Thai-Korean translations."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3
+        )
         
-        for sentence in sentences:
-            if not sentence.strip():
-                continue
-            
-            if source_lang == "태국어":
-                prompt = f"""Your task:
-1. Translate the following Thai text into Korean accurately and contextually.
-2. Ensure the translation is clear and suitable for understanding by native Korean speakers.
-3. On the next line, write the Korean pronunciation guide for the given Thai text.
-
-Rules:
-- Always output in two lines.
-- The first line should ONLY contain the accurate Korean translation.
-- The second line should ONLY contain the Korean pronunciation.
-- Do not add labels or additional explanations.
-
-Text to translate: {sentence}"""
-            else:
-                if target_audience == "유치원생":
-                    prompt = f"""Your task:
-1. Translate into Thai for kindergarten children.
-2. Make it simple, warm, and friendly.
-3. Write Korean pronunciation guide on next line.
-
-Rules:
-- Keep sentences very short and clear
-- Use vocabulary for ages 3-6
-- Make it loving and suitable for Christian message
-
-Text to translate: {sentence}"""
-                elif target_audience == "초등학생":
-                    prompt = f"""Your task:
-1. Translate into Thai for elementary students.
-2. Use clear language for ages 7-12.
-3. Write Korean pronunciation guide on next line.
-
-Rules:
-- Use age-appropriate vocabulary
-- Keep a friendly but educational tone
-- Make Christian concepts understandable
-
-Text to translate: {sentence}"""
-                else:  # 중고등학생
-                    prompt = f"""Your task:
-1. Translate into Thai for teenage students.
-2. Use more sophisticated language.
-3. Write Korean pronunciation guide on next line.
-
-Rules:
-- Use varied vocabulary and natural expressions
-- Include appropriate theological terms
-- Keep an engaging tone for teenagers
-
-Text to translate: {sentence}"""
-            
-            response = client.chat.completions.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a translation assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.3
-            )
-            
-            output = response.choices[0].message.content.strip()
-            lines = [line.strip() for line in output.split("\n") if line.strip()]
-            
-            if len(lines) == 2:
-                translations.append(lines[0])
-                pronunciations.append(lines[1])
-            else:
-                st.warning(f"API 응답이 예상과 다릅니다: {output}")
-                translations.append("번역 오류")
-                pronunciations.append("발음 오류")
+        output = response.choices[0].message.content.strip()
+        lines = [line.strip() for line in output.split("\n") if line.strip()]
+        if len(lines) != 2:
+            raise ValueError("번역 결과가 예상 형식과 다릅니다.")
         
-        return "\n".join(translations), "\n".join(pronunciations)
-        
-    except Exception as e:
-        st.error(f"번역 중 오류 발생: {str(e)}")
-        return "", ""
+        return lines[0], lines[1]
 
 def generate_tts_per_sentence(text, target_audience):
     if not text.strip():
