@@ -28,14 +28,17 @@ def translate_and_transliterate(text, source_lang, target_audience):
             
             if source_lang == "태국어":
                 prompt = f"""Your task:
-1. Translate the following Thai text into Korean.
-2. On the next line, write the Korean pronunciation guide for the Thai text (how to read the Thai words in Korean).
+1. Translate the following Thai text into Korean accurately and contextually.
+2. Ensure the translation is clear and suitable for understanding by native Korean speakers.
+3. On the next line, write the Korean pronunciation guide for the given Thai text (how to read the Thai words in Korean).
 
 Rules:
 - Always output in two lines.
-- The first line should ONLY contain the Korean translation of the Thai text.
-- The second line should ONLY contain the Korean pronunciation of the Thai text.
+- The first line should ONLY contain the accurate Korean translation of the Thai text.
+- The second line should ONLY contain the Korean pronunciation of the Thai text (transliteration).
 - Do not add labels, numbers, or additional explanations.
+- Maintain the context and meaning of the Thai text while translating.
+- Write the pronunciation in a way that is easy to read for Korean speakers.
 
 Text to translate: {sentence}"""
             else:  # 한글 입력
@@ -50,31 +53,6 @@ Rules:
 - Use vocabulary that is appropriate for children aged 3–6 years old.
 - Do not add labels, numbers, or extra explanations.
 - The translation should feel kind and loving, suitable for a Christian missionary message to young children.
-
-Text to translate: {sentence}"""
-                elif target_audience == "초등학생":
-                    prompt = f"""Your task:
-1. Translate the given text into Thai in a way that a primary school child (aged 7–12) can easily understand.
-2. Use simple and engaging language that makes the text interesting and relatable for children.
-3. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
-
-Rules:
-- Keep sentences clear and moderately short.
-- Use age-appropriate vocabulary that encourages curiosity and learning.
-- Make the tone friendly and hopeful, reflecting a Christian missionary perspective.
-- Avoid labels, numbers, or unnecessary explanations.
-
-Text to translate: {sentence}"""
-                else:  # 중고등학생
-                    prompt = f"""Your task:
-1. Translate the given text into Thai in a way that middle and high school students (aged 13–18) can understand and reflect upon.
-2. Use thoughtful and respectful language that conveys a deeper meaning while being relatable to teenagers.
-3. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
-
-Rules:
-- Use language that encourages understanding and self-reflection.
-- The tone should be inspiring, respectful, and in line with Christian missionary values.
-- Do not add labels, numbers, or additional explanations.
 
 Text to translate: {sentence}"""
             
