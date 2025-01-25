@@ -18,7 +18,11 @@ def translate_and_transliterate(text, source_lang):
         
     try:
         if source_lang == "한글":
-            prompt = f"1. Translate this Korean text to Thai:\n{text}\n2. Write ONLY how to pronounce the Thai translation using Korean characters (한글로 태국어 발음 표기)"
+            prompt = f"""Your task:
+1. Return ONLY the Thai translation (without any labels or explanation)
+2. On the next line, return ONLY the Korean pronunciation guide for that Thai text (how to read the Thai words in Korean)
+
+Text to translate: {text}"""
         else:
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
