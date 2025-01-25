@@ -18,12 +18,12 @@ def translate_and_transliterate(text, source_lang):
         
     try:
         if source_lang == "한글":
-            prompt = f"Translate the following Korean text into Thai. Then provide the Thai text's pronunciation in Korean script:\n{text}"
+            prompt = f"Instructions:\n1. Translate the Korean text into Thai without any labels\n2. Write how to pronounce the Thai translation in Korean characters only\n\nText to translate:\n{text}"
         else:
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
-            model="gpt-4",
+            model="gpt-4o",
             messages=[
                 {"role": "system", "content": "You are a translation assistant."},
                 {"role": "user", "content": prompt}
@@ -51,10 +51,12 @@ def generate_tts(text, voice="shimmer"):
         os.makedirs(output_dir, exist_ok=True)
         output_mp3_path = Path(output_dir) / "output.mp3"
         
-        response = client.audio.speech.create(
-            model="tts-1",
-            voice=voice,
-            input=text
+                    # 'Thai text:' 제거
+            clean_text = text.replace('Thai text:', '').strip()
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=clean_text
         )
         
         response.stream_to_file(str(output_mp3_path))
