@@ -2,6 +2,7 @@ import streamlit as st
 from pathlib import Path
 from openai import OpenAI
 import os
+from datetime import datetime
 
 # OpenAI client initialization with error handling
 try:
@@ -61,14 +62,14 @@ Text to translate: {text}"""
         st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
         return "", ""
 
-def generate_tts(text, voice="shimmer"):
+def generate_tts(text, voice="shimmer", file_name="output.mp3"):
     if not text.strip():
         return None
         
     try:
         output_dir = "temp_audio"
         os.makedirs(output_dir, exist_ok=True)
-        output_mp3_path = Path(output_dir) / "output.mp3"
+        output_mp3_path = Path(output_dir) / file_name
         
         response = client.audio.speech.create(
             model="tts-1",
@@ -85,6 +86,18 @@ def generate_tts(text, voice="shimmer"):
     except Exception as e:
         st.error(f"음성 생성 중 오류가 발생했습니다: {str(e)}")
         return None
+
+def create_file_name(text, source_lang):
+    # 오늘 날짜 가져오기
+    today_date = datetime.now().strftime("%y%m%d")
+    
+    if source_lang == "한글":
+        file_name_base = text[:10]  # 한글 입력 시, 처음 10글자 사용
+    else:
+        file_name_base = translate_and_transliterate(text, "태국어")[0][:10]  # 태국어를 한글 번역
+    
+    file_name_base = file_name_base.replace(" ", "").strip()  # 공백 제거
+    return f"{file_name_base}({today_date}).mp3"
 
 def main():
     st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
@@ -117,11 +130,12 @@ def main():
                 st.success(f"**번역 결과:**\n{translation}")
                 st.info(f"**발음:**\n{pronunciation}")
                 
-                # 태국어 입력 시 태국어로 음성 생성, 한글 입력 시 번역된 태국어로 음성 생성
+                # MP3 파일 이름 생성
                 tts_text = user_text if input_language == "태국어" else translation
+                file_name = create_file_name(user_text, input_language)
                 
                 with st.spinner("🎧 MP3 생성 중..."):
-                    mp3_path = generate_tts(tts_text)
+                    mp3_path = generate_tts(tts_text, file_name=file_name)
                     
                     if mp3_path and mp3_path.exists():
                         with open(mp3_path, "rb") as mp3_file:
@@ -133,7 +147,7 @@ def main():
                                 st.download_button(
                                     label="📥 MP3 파일 다운로드",
                                     data=audio_data,
-                                    file_name="output.mp3",
+                                    file_name=file_name,
                                     mime="audio/mpeg"
                                 )
                                 
