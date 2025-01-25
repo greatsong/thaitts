@@ -23,7 +23,7 @@ def translate_and_transliterate(text, source_lang):
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4-0125-preview",
             messages=[
                 {"role": "system", "content": "You are a translation assistant."},
                 {"role": "user", "content": prompt}
@@ -51,12 +51,12 @@ def generate_tts(text, voice="shimmer"):
         os.makedirs(output_dir, exist_ok=True)
         output_mp3_path = Path(output_dir) / "output.mp3"
         
-                    # 'Thai text:' 제거
-            clean_text = text.replace('Thai text:', '').strip()
-            response = client.audio.speech.create(
-                model="tts-1",
-                voice=voice,
-                input=clean_text
+                # 'Thai text:' 제거
+        clean_text = text.replace('Thai text:', '').strip()
+        response = client.audio.speech.create(
+            model="tts-1",
+            voice=voice,
+            input=clean_text
         )
         
         response.stream_to_file(str(output_mp3_path))
