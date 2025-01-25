@@ -11,7 +11,7 @@ except Exception as e:
     st.error("OpenAI API 키 설정에 문제가 있습니다.")
     st.stop()
 
-@st.cache(ttl=3600)  # @st.cache_data를 @st.cache로 변경
+@st.cache_data()  # @st.cache_data를 @st.cache로 변경
 def translate_and_transliterate(text, source_lang, target_audience):
     if not text.strip():
         return "", ""
