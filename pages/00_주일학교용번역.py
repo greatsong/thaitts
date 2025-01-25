@@ -1,17 +1,4 @@
-import streamlit as st
-from pathlib import Path
-from openai import OpenAI
-import os
-from datetime import datetime
-
-# OpenAI client initialization with error handling
-try:
-    client = OpenAI(api_key=st.secrets["openai_api_key"])
-except Exception as e:
-    st.error("OpenAI API 키 설정에 문제가 있습니다.")
-    st.stop()
-
-@st.cache_data()  # @st.cache_data를 @st.cache로 변경
+@st.cache_data(ttl=3600)
 def translate_and_transliterate(text, source_lang, target_audience):
     if not text.strip():
         return "", ""
@@ -68,6 +55,7 @@ Text to translate: {text}"""
         output = response.choices[0].message.content.strip()
         lines = [line.strip() for line in output.split("\n") if line.strip()]
         
+        # 검증: 응답이 예상 형식(2줄)인지 확인
         if len(lines) != 2:
             st.warning(f"API 응답이 예상과 다릅니다. 원본 응답: {output}")
             return "번역 결과를 생성할 수 없습니다.", "발음을 생성할 수 없습니다."
@@ -77,5 +65,3 @@ Text to translate: {text}"""
     except Exception as e:
         st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
         return "", ""
-
-# 나머지 코드 동일
