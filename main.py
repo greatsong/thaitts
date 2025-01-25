@@ -19,15 +19,15 @@ def translate_and_transliterate(text, source_lang):
     try:
         if source_lang == "한글":
             prompt = f"""Your task:
-1. Return ONLY the Thai translation (without any labels or explanation)
-2. On the next line, return ONLY the Korean pronunciation guide for that Thai text (how to read the Thai words in Korean)
+1. Translate the following text into Thai.
+2. Then, provide the Korean pronunciation guide for the translated Thai text (how to read the Thai words in Korean).
 
 Text to translate: {text}"""
         else:
             prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
         
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="4o",
             messages=[
                 {"role": "system", "content": "You are a translation assistant."},
                 {"role": "user", "content": prompt}
@@ -42,8 +42,6 @@ Text to translate: {text}"""
         translation = lines[0] if len(lines) > 0 else "번역 결과를 생성할 수 없습니다."
         pronunciation = lines[1] if len(lines) > 1 else "발음을 생성할 수 없습니다."
         
-        # 발음에서 불필요한 텍스트 제거
-        pronunciation = pronunciation.replace("Thai text:", "").strip()
         return translation, pronunciation
         
     except Exception as e:
@@ -59,15 +57,13 @@ def generate_tts(text, voice="shimmer"):
         os.makedirs(output_dir, exist_ok=True)
         output_mp3_path = Path(output_dir) / "output.mp3"
         
-        # 'Thai text:' 제거
-        clean_text = text.replace('Thai text:', '').strip()
+        # 스트림 방식으로 처리
         response = client.audio.speech.create(
             model="tts-1",
             voice=voice,
-            input=clean_text
+            input=text
         )
         
-        # Stream 방식으로 처리
         with open(output_mp3_path, "wb") as f:
             for chunk in response.iter_bytes():
                 f.write(chunk)
@@ -77,7 +73,6 @@ def generate_tts(text, voice="shimmer"):
     except Exception as e:
         st.error(f"음성 생성 중 오류가 발생했습니다: {str(e)}")
         return None
-
 
 def main():
     st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
@@ -111,7 +106,7 @@ def main():
                 st.info(f"**발음:**\n{pronunciation}")
                 
                 with st.spinner("🎧 MP3 생성 중..."):
-                    mp3_path = generate_tts(translation)
+                    mp3_path = generate_tts(pronunciation)  # 발음을 기반으로 음성 생성
                     
                     if mp3_path and mp3_path.exists():
                         with open(mp3_path, "rb") as mp3_file:
