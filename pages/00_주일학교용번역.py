@@ -1,4 +1,4 @@
-@st.cache(ttl=3600)
+@st.cache_data()
 def translate_and_transliterate(text, source_lang, target_audience):
     if not text.strip():
         return "", ""
