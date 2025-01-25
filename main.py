@@ -1,13 +1,9 @@
 import streamlit as st
 from pathlib import Path
 from openai import OpenAI
-from googletrans import Translator
 
 # OpenAI API 클라이언트 초기화
-client = OpenAI(api_key=st.secrets["openai_api_key"])  # OpenAI API 키 입력
-
-# Google Translator 초기화
-translator = Translator()
+client = OpenAI(api_key=st.secrets["openai_api_key"])  # OpenAI API 키 사용
 
 # 음성 옵션 목록
 voice_options = [
@@ -17,7 +13,6 @@ voice_options = [
 # Streamlit UI 구성
 st.title("TTS with OpenAI: Text to Speech")
 st.write("텍스트를 음성으로 변환하고, MP3 파일을 다운로드하세요.")
-st.write("추가로 한글 텍스트를 태국어로 번역 후 음성으로 변환할 수도 있습니다.")
 
 # 음성 선택
 selected_voice = st.selectbox("음성을 선택하세요:", options=voice_options)
@@ -35,28 +30,17 @@ elif input_method == "파일 업로드":
     else:
         user_text = ""
 
-# 번역 및 변환 옵션 선택
-translate_to_thai = st.checkbox("한글 텍스트를 태국어로 번역하기")
-
 # 변환 및 다운로드 처리
 if st.button("MP3 생성"):
     if not user_text.strip():
         st.error("텍스트를 입력하거나 파일을 업로드하세요!")
     else:
-        # 한글을 태국어로 번역
-        if translate_to_thai:
-            thai_text = translator.translate(user_text, src="ko", dest="th").text
-            st.write("번역된 태국어:")
-            st.write(thai_text)
-        else:
-            thai_text = user_text
-
         # TTS 변환 및 MP3 생성
         output_mp3_path = Path("output.mp3")
         response = client.audio.speech.create(
             model="tts-1",
             voice=selected_voice,
-            input=thai_text,
+            input=user_text,
         )
         response.stream_to_file(output_mp3_path)
 
@@ -71,5 +55,3 @@ if st.button("MP3 생성"):
             )
 
         st.success("MP3 파일 생성 완료!")
-
-
