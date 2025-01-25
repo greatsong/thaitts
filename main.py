@@ -17,10 +17,16 @@ def translate_and_transliterate(text, source_lang):
         return "", ""
         
     try:
-        # 프롬프트 설정
+        # 완벽한 프롬프트
         prompt = f"""Your task:
-1. Translate the following text into Thai.
-2. Then, provide the Korean pronunciation guide for the translated Thai text (how to read the Thai words in Korean).
+1. Translate the given text into Thai.
+2. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
+
+Rules:
+- Always output in two lines.
+- The first line should ONLY contain the Thai translation.
+- The second line should ONLY contain the Korean pronunciation.
+- Do not add any labels, numbers, or additional explanations.
 
 Text to translate: {text}"""
         
@@ -35,10 +41,13 @@ Text to translate: {text}"""
         
         output = response.choices[0].message.content.strip()
         
-        # 출력 형식 파싱
+        # 정확한 데이터 추출
         lines = [line.strip() for line in output.split("\n") if line.strip()]
-        translation = lines[0] if len(lines) > 0 else "번역 결과를 생성할 수 없습니다."
-        pronunciation = lines[1] if len(lines) > 1 else "발음을 생성할 수 없습니다."
+        if len(lines) != 2:
+            raise ValueError("Unexpected output format from OpenAI API")
+        
+        translation = lines[0]
+        pronunciation = lines[1]
         
         return translation, pronunciation
         
