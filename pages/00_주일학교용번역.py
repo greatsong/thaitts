@@ -26,8 +26,21 @@ def translate_and_transliterate(text, source_lang, target_audience):
             if not sentence.strip():
                 continue  # 빈 줄 건너뛰기
             
-            if target_audience == "유치원생":
+            if source_lang == "태국어":
                 prompt = f"""Your task:
+1. Translate the following Thai text into Korean.
+2. On the next line, write the Korean pronunciation guide for the Thai text (how to read the Thai words in Korean).
+
+Rules:
+- Always output in two lines.
+- The first line should ONLY contain the Korean translation of the Thai text.
+- The second line should ONLY contain the Korean pronunciation of the Thai text.
+- Do not add labels, numbers, or additional explanations.
+
+Text to translate: {sentence}"""
+            else:  # 한글 입력
+                if target_audience == "유치원생":
+                    prompt = f"""Your task:
 1. Translate the given text into Thai in a way that a kindergarten child can easily understand.
 2. Make the translation simple, warm, and friendly, with short sentences.
 3. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
@@ -39,8 +52,8 @@ Rules:
 - The translation should feel kind and loving, suitable for a Christian missionary message to young children.
 
 Text to translate: {sentence}"""
-            elif target_audience == "초등학생":
-                prompt = f"""Your task:
+                elif target_audience == "초등학생":
+                    prompt = f"""Your task:
 1. Translate the given text into Thai in a way that a primary school child (aged 7–12) can easily understand.
 2. Use simple and engaging language that makes the text interesting and relatable for children.
 3. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
@@ -52,8 +65,8 @@ Rules:
 - Avoid labels, numbers, or unnecessary explanations.
 
 Text to translate: {sentence}"""
-            else:  # 중고등학생
-                prompt = f"""Your task:
+                else:  # 중고등학생
+                    prompt = f"""Your task:
 1. Translate the given text into Thai in a way that middle and high school students (aged 13–18) can understand and reflect upon.
 2. Use thoughtful and respectful language that conveys a deeper meaning while being relatable to teenagers.
 3. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
@@ -153,9 +166,14 @@ def main():
             
             if translation and pronunciation:
                 st.write("🌏 번역 결과:")
-                st.info(f"**입력 ({input_language}):**\n{user_text}")
-                st.success(f"**번역 결과:**\n{translation}")
-                st.info(f"**발음:**\n{pronunciation}")
+                if input_language == "태국어":
+                    st.info(f"**입력 (태국어):**\n{user_text}")
+                    st.success(f"**번역 결과:**\n{translation}")
+                    st.info(f"**발음:**\n{pronunciation}")
+                else:
+                    st.info(f"**입력 (한글):**\n{user_text}")
+                    st.success(f"**번역 결과:**\n{translation}")
+                    st.info(f"**발음:**\n{pronunciation}")
                 
                 tts_text = user_text if input_language == "태국어" else translation
                 file_name = create_file_name(user_text, target_audience)
