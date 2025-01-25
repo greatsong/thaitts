@@ -7,20 +7,28 @@ openai.api_key = st.secrets["openai_api_key"]
 
 # Streamlit UI 구성
 st.title("🌟 하늘씨앗교회 태국 선교 파이팅!! 🌟")
-st.subheader("🇹🇭 한글 또는 태국어 텍스트를 입력하거나 파일로 업로드하세요!")
+st.subheader("🇹🇭 한글 또는 태국어를 입력하거나 파일로 업로드하세요!")
 
-st.write("🎧 **한글 또는 태국어 텍스트를 번역하고 발음을 확인하며 음성을 생성합니다.** 🎧")
+st.write("🎧 **텍스트를 번역하고 발음을 확인하며 음성을 생성합니다.** 🎧")
 
-# 입력 방법 선택
-input_method = st.radio(
-    "입력 방법을 선택하세요:",
-    ["한글 / 태국어 텍스트 입력", "한글 / 태국어 텍스트 파일 입력"]
+# 입력 언어 선택
+input_language = st.radio(
+    "입력 언어를 선택하세요:",
+    ["한글", "태국어"],
+    index=0  # 기본값: 한글
 )
 
-# 텍스트 입력 또는 파일 업로드
-if input_method == "한글 / 태국어 텍스트 입력":
+# 입력 방식 선택
+input_method = st.radio(
+    "입력 방식을 선택하세요:",
+    ["텍스트 창 입력", "텍스트 파일 업로드"],
+    index=0  # 기본값: 텍스트 창 입력
+)
+
+# 텍스트 입력 또는 파일 업로드 처리
+if input_method == "텍스트 창 입력":
     user_text = st.text_area("📝 텍스트를 입력하세요:")
-elif input_method == "한글 / 태국어 텍스트 파일 입력":
+elif input_method == "텍스트 파일 업로드":
     uploaded_file = st.file_uploader("📂 텍스트 파일을 업로드하세요:", type=["txt"])
     if uploaded_file is not None:
         user_text = uploaded_file.read().decode("utf-8")
@@ -28,20 +36,25 @@ elif input_method == "한글 / 태국어 텍스트 파일 입력":
         user_text = ""
 
 # ChatGPT를 이용한 번역 및 발음 생성 함수
-def translate_and_transliterate(text):
+def translate_and_transliterate(text, source_lang):
+    if source_lang == "한글":
+        prompt = f"Translate the following Korean text into Thai and provide its pronunciation in Korean script:\n{text}"
+    else:
+        prompt = f"Translate the following Thai text into Korean and provide its pronunciation in Thai script:\n{text}"
+
     response = openai.ChatCompletion.create(
-        model="gpt-4",  # 4o로 지정
+        model="gpt-4",  # 기본 모델: 4o
         messages=[
             {"role": "system", "content": "You are a translation assistant."},
-            {"role": "user", "content": f"Translate the following Korean text into Thai and provide its pronunciation in Korean script:\n{text}"}
+            {"role": "user", "content": prompt}
         ],
         temperature=0.3,
     )
     output = response["choices"][0]["message"]["content"]
     lines = output.split("\n")
-    thai_translation = lines[0].strip()
-    thai_pronunciation = lines[1].strip() if len(lines) > 1 else "Pronunciation not available"
-    return thai_translation, thai_pronunciation
+    translation = lines[0].strip()
+    pronunciation = lines[1].strip() if len(lines) > 1 else "Pronunciation not available"
+    return translation, pronunciation
 
 # TTS 생성 함수
 def generate_tts(text, voice="shimmer"):
@@ -62,16 +75,16 @@ if st.button("번역 및 MP3 생성"):
     else:
         # 번역 및 발음 생성
         st.write("🔄 번역 중...")
-        thai_translation, thai_pronunciation = translate_and_transliterate(user_text)
-        
+        translation, pronunciation = translate_and_transliterate(user_text, input_language)
+
         st.write("🌏 번역 결과:")
-        st.markdown(f"**한글 또는 태국어 입력:** {user_text}")
-        st.markdown(f"**태국어 번역:** {thai_translation}")
-        st.markdown(f"**태국어 발음:** {thai_pronunciation}")
-        
+        st.markdown(f"**입력 ({input_language}):** {user_text}")
+        st.markdown(f"**번역 결과:** {translation}")
+        st.markdown(f"**발음:** {pronunciation}")
+
         # TTS 생성
         st.write("🎧 MP3 생성 중...")
-        mp3_path = generate_tts(thai_translation)
+        mp3_path = generate_tts(translation)
 
         # MP3 파일 제공
         with open(mp3_path, "rb") as mp3_file:
