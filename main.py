@@ -17,8 +17,9 @@ def translate_and_transliterate(text, source_lang):
         return "", ""
         
     try:
-        # 완벽한 프롬프트
-        prompt = f"""Your task:
+        # 프롬프트 설정
+        if source_lang == "한글":
+            prompt = f"""Your task:
 1. Translate the given text into Thai.
 2. On the next line, write the Korean pronunciation guide for the Thai translation (how to read the Thai words in Korean).
 
@@ -29,7 +30,20 @@ Rules:
 - Do not add any labels, numbers, or additional explanations.
 
 Text to translate: {text}"""
+        else:  # 태국어 입력 시
+            prompt = f"""Your task:
+1. Translate the given Thai text into Korean.
+2. On the next line, write the Korean pronunciation guide for the Thai text (how to read the Thai words in Korean).
+
+Rules:
+- Always output in two lines.
+- The first line should ONLY contain the Korean translation.
+- The second line should ONLY contain the Korean pronunciation.
+- Do not add any labels, numbers, or additional explanations.
+
+Text to translate: {text}"""
         
+        # OpenAI API 호출
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -39,16 +53,21 @@ Text to translate: {text}"""
             temperature=0.3
         )
         
+        # 응답 처리
         output = response.choices[0].message.content.strip()
         lines = [line.strip() for line in output.split("\n") if line.strip()]
         if len(lines) != 2:
             raise ValueError("Unexpected output format from OpenAI API")
         
-        return lines[0], lines[1]
+        translation = lines[0]  # 첫 번째 줄: 번역 결과
+        pronunciation = lines[1]  # 두 번째 줄: 발음
+        
+        return translation, pronunciation
         
     except Exception as e:
         st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
         return "", ""
+
 
 def generate_tts(text, voice="shimmer"):
     if not text.strip():
