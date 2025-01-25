@@ -3,28 +3,32 @@ from pathlib import Path
 from openai import OpenAI
 import os
 from datetime import datetime
+import re
 
 # OpenAI client initialization with error handling
+if "openai_api_key" not in st.secrets:
+    st.error("OpenAI API 키가 설정되지 않았습니다. 환경 변수를 확인해주세요.")
+    st.stop()
+
 try:
     client = OpenAI(api_key=st.secrets["openai_api_key"])
 except Exception as e:
-    st.error("OpenAI API 키 설정에 문제가 있습니다.")
+    st.error("OpenAI API 클라이언트를 초기화하는 중 문제가 발생했습니다.")
     st.stop()
 
-@st.cache_data(ttl=3600)  # st.cache_data() 사용
+@st.cache_data(ttl=3600)
 def translate_and_transliterate(text, source_lang, target_audience):
     if not text.strip():
         return "", ""
-        
+    
     try:
-        # 텍스트를 문장 단위로 분리
         sentences = text.split("\n")
         translations = []
         pronunciations = []
         
         for sentence in sentences:
             if not sentence.strip():
-                continue  # 빈 줄 건너뛰기
+                continue
             
             if source_lang == "태국어":
                 prompt = f"""Your task:
@@ -41,9 +45,9 @@ Rules:
 - Write the pronunciation in a way that is easy to read for Korean speakers.
 
 Text to translate: {sentence}"""
-            else:  # 한글 입력
+            else:
                 if target_audience == "유치원생":
-    prompt = f"""Your task:
+                    prompt = f"""Your task:
 1. Translate the given text into Thai in a way that a kindergarten child can easily understand.
 2. Make the translation simple, warm, and friendly, with short sentences.
 3. On the next line, write the Korean pronunciation guide for the Thai translation.
@@ -55,7 +59,7 @@ Rules:
 
 Text to translate: {sentence}"""
                 elif target_audience == "초등학생":
-    prompt = f"""Your task:
+                    prompt = f"""Your task:
 1. Translate the given text into Thai suitable for elementary school students.
 2. Use clear language and appropriate vocabulary for ages 7-12.
 3. On the next line, write the Korean pronunciation guide for the Thai translation.
@@ -67,7 +71,7 @@ Rules:
 
 Text to translate: {sentence}"""
                 elif target_audience == "중고등학생":
-    prompt = f"""Your task:
+                    prompt = f"""Your task:
 1. Translate the given text into Thai suitable for middle/high school students.
 2. Use more sophisticated language appropriate for teenagers.
 3. On the next line, write the Korean pronunciation guide for the Thai translation.
@@ -88,9 +92,16 @@ Text to translate: {sentence}"""
                 temperature=0.3
             )
             
-            output = response.choices[0].message.content.strip()
-            lines = [line.strip() for line in output.split("\n") if line.strip()]
+            output = ""
+            if response.choices and len(response.choices) > 0:
+                output = response.choices[0].message.content.strip()
+            else:
+                st.warning("OpenAI 응답이 예상과 다릅니다. 빈 응답을 수신했습니다.")
+                translations.append("번역 오류")
+                pronunciations.append("발음 오류")
+                continue
             
+            lines = [line.strip() for line in output.split("\n") if line.strip()]
             if len(lines) == 2:
                 translations.append(lines[0])
                 pronunciations.append(lines[1])
@@ -99,11 +110,10 @@ Text to translate: {sentence}"""
                 translations.append("번역 오류")
                 pronunciations.append("발음 오류")
         
-        # 결과 병합
         final_translation = "\n".join(translations)
         final_pronunciation = "\n".join(pronunciations)
         return final_translation, final_pronunciation
-        
+    
     except Exception as e:
         st.error(f"번역 중 오류가 발생했습니다: {str(e)}")
         return "", ""
@@ -111,7 +121,7 @@ Text to translate: {sentence}"""
 def generate_tts(text, voice="shimmer", file_name="output.mp3"):
     if not text.strip():
         return None
-        
+    
     try:
         output_dir = "temp_audio"
         os.makedirs(output_dir, exist_ok=True)
@@ -128,14 +138,14 @@ def generate_tts(text, voice="shimmer", file_name="output.mp3"):
                 f.write(chunk)
         
         return output_mp3_path
-        
+    
     except Exception as e:
         st.error(f"음성 생성 중 오류가 발생했습니다: {str(e)}")
         return None
 
 def create_file_name(text, target_audience):
     today_date = datetime.now().strftime("%y%m%d")
-    file_name_base = text[:10].replace(" ", "").strip()  # 텍스트 첫 10글자 (공백 제거)
+    file_name_base = re.sub(r"[^\w]", "", text[:10].strip())
     return f"{file_name_base}({today_date})_{target_audience}.mp3"
 
 def main():
@@ -157,7 +167,7 @@ def main():
         uploaded_file = st.file_uploader("📂 텍스트 파일을 업로드하세요:", type=["txt"])
         user_text = uploaded_file.read().decode("utf-8") if uploaded_file else ""
 
-    if st.button("번역 및 MP3 생성", type="primary"):
+    if st.button("번역 및 MP3 생성"):
         if not user_text.strip():
             st.error("❌ 텍스트를 입력해주세요!")
             return
@@ -167,14 +177,9 @@ def main():
             
             if translation and pronunciation:
                 st.write("🌏 번역 결과:")
-                if input_language == "태국어":
-                    st.info(f"**입력 (태국어):**\n{user_text}")
-                    st.success(f"**번역 결과:**\n{translation}")
-                    st.info(f"**발음:**\n{pronunciation}")
-                else:
-                    st.info(f"**입력 (한글):**\n{user_text}")
-                    st.success(f"**번역 결과:**\n{translation}")
-                    st.info(f"**발음:**\n{pronunciation}")
+                st.info(f"**입력:**\n{user_text}")
+                st.success(f"**번역 결과:**\n{translation}")
+                st.info(f"**발음:**\n{pronunciation}")
                 
                 tts_text = user_text if input_language == "태국어" else translation
                 file_name = create_file_name(user_text, target_audience)
@@ -186,14 +191,12 @@ def main():
                         with open(mp3_path, "rb") as mp3_file:
                             audio_data = mp3_file.read()
                             st.audio(audio_data, format="audio/mpeg")
-                            
                             st.download_button(
                                 label="📥 MP3 파일 다운로드",
                                 data=audio_data,
                                 file_name=file_name,
                                 mime="audio/mpeg"
                             )
-                            
                         st.success("✅ 번역 및 MP3 생성 완료! 🎉")
 
 if __name__ == "__main__":
